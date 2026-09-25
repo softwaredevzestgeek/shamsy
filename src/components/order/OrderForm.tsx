@@ -70,7 +70,7 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
   const finished = useRef(false);
   // When a refused rate is reset on blur, the same tap must not save: the
   // adviser should see the new rate and the message before sending.
-  const rateResetAt = useRef(0);
+  const rateJustReset = useRef(false);
 
   // Every change is kept on the device.
   useEffect(() => {
@@ -103,7 +103,10 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
       setRateNotice(null);
     } else {
       // Refuse, put the value back to the minimum, and say why.
-      rateResetAt.current = Date.now();
+      rateJustReset.current = true;
+      setTimeout(() => {
+        rateJustReset.current = false;
+      }, 800);
       update((d) => ({ ...d, rate: String(check.fallback) }));
       setRateNotice(
         check.reason === "below_minimum"
@@ -125,8 +128,8 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
 
   async function submit() {
     if (inFlight.current) return; // no double submission
-    if (Date.now() - rateResetAt.current < 1000) {
-      rateResetAt.current = 0;
+    if (rateJustReset.current) {
+      rateJustReset.current = false;
       document.getElementById("rate")?.scrollIntoView({ block: "center", behavior: "smooth" });
       return;
     }
@@ -202,6 +205,8 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
       isOwner={isOwner}
       blockedCount={blockedCount}
       adviserBlocked={adviserBlocked}
+      rateInvalid={!evaluated.rate.ok}
+      rateMessage={t("order.rateBlocksSave", { min: minRateText })}
       redMaxText={redMaxText}
       onSendForApproval={() => void submit()}
     />
@@ -461,6 +466,8 @@ function SaveActions({
   isOwner,
   blockedCount,
   adviserBlocked,
+  rateInvalid,
+  rateMessage,
   redMaxText,
   onSendForApproval,
 }: {
@@ -469,6 +476,9 @@ function SaveActions({
   isOwner: boolean;
   blockedCount: number;
   adviserBlocked: boolean;
+  /** The typed rate is below the minimum or not a number: nothing can be sent. */
+  rateInvalid: boolean;
+  rateMessage: string;
   redMaxText: string;
   onSendForApproval: () => void;
 }) {
@@ -482,12 +492,15 @@ function SaveActions({
             : t("order.blockedExplanation", { count: blockedCount, max: redMaxText })}
         </p>
       )}
-      {compact && adviserBlocked && (
+      {rateInvalid && (
+        <p className="text-center text-xs font-semibold text-amber-800" role="status">{rateMessage}</p>
+      )}
+      {compact && adviserBlocked && !rateInvalid && (
         <p className="text-center text-xs font-medium text-red-800">{t("order.blockedShort")}</p>
       )}
       <div className={cx("flex gap-2", compact ? "flex-row-reverse" : "flex-col")}>
         {adviserBlocked && (
-          <button type="button" className={cx(buttonWarning, "w-full", compact && "flex-[1.4] whitespace-nowrap px-3! text-sm!")} disabled={saving} onClick={onSendForApproval}>
+          <button type="button" className={cx(buttonWarning, "w-full", compact && "flex-[1.4] whitespace-nowrap px-3! text-sm!")} disabled={saving || rateInvalid} onClick={onSendForApproval}>
             {saving ? <IconSpinner /> : null}
             {saving ? t("order.saving") : t("order.sendForApproval")}
           </button>
@@ -495,7 +508,7 @@ function SaveActions({
         <button
           type="submit"
           className={cx(buttonPrimary, "w-full", compact && adviserBlocked && "flex-1 whitespace-nowrap px-3! text-sm!")}
-          disabled={saving || adviserBlocked}
+          disabled={saving || adviserBlocked || rateInvalid}
         >
           {saving && !adviserBlocked ? <IconSpinner /> : null}
           {saving && !adviserBlocked ? t("order.saving") : label}

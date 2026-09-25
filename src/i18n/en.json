@@ -141,7 +141,8 @@
     "noDealerMatch": "No dealer matches.",
     "inOrder": "×{count}",
     "blockedShort": "Blocked line(s) need owner approval",
-    "inOrderLabel": "{count} already in this order"
+    "inOrderLabel": "{count} already in this order",
+    "rateBlocksSave": "Minimum rate is {min} SDG per USD"
   },
   "lineErrors": {
     "needProduct": "Choose a product.",
