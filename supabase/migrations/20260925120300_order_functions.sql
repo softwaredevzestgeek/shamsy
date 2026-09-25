@@ -164,7 +164,8 @@ begin
     v_product_id := (v_elem ->> 'product_id')::uuid;
 
     -- whole numbers only, as JSON numbers: no "1.5", no "-1", no strings
-    if jsonb_typeof(v_elem -> 'quantity') <> 'number' or (v_elem ->> 'quantity') !~ '^[0-9]{1,6}$' then
+    if coalesce(jsonb_typeof(v_elem -> 'quantity'), '') <> 'number'
+       or coalesce(v_elem ->> 'quantity', '') !~ '^[0-9]{1,6}$' then
       raise exception 'invalid_quantity' using errcode = '22023', detail = v_ord::text;
     end if;
     v_quantity := (v_elem ->> 'quantity')::integer;
@@ -172,7 +173,8 @@ begin
       raise exception 'invalid_quantity' using errcode = '22023', detail = v_ord::text;
     end if;
 
-    if jsonb_typeof(v_elem -> 'discount_cents') <> 'number' or (v_elem ->> 'discount_cents') !~ '^[0-9]{1,15}$' then
+    if coalesce(jsonb_typeof(v_elem -> 'discount_cents'), '') <> 'number'
+       or coalesce(v_elem ->> 'discount_cents', '') !~ '^[0-9]{1,15}$' then
       raise exception 'invalid_discount' using errcode = '22023', detail = v_ord::text;
     end if;
     v_discount := (v_elem ->> 'discount_cents')::bigint;

@@ -114,6 +114,12 @@ select throws_ok($$select public.save_order('d0000000-0000-4000-8000-00000000000
 select throws_ok($$select public.save_order('d0000000-0000-4000-8000-00000000000d', 8200,
   jsonb_build_array(jsonb_build_object('product_id', current_setting('t.spf'), 'quantity', 1, 'discount_cents', -1)),
   gen_random_uuid())$$, '22023', 'invalid_discount', 'negative discount refused');
+select throws_ok($$select public.save_order('d0000000-0000-4000-8000-00000000000d', 8200,
+  jsonb_build_array(jsonb_build_object('product_id', current_setting('t.spf'), 'discount_cents', 0)),
+  gen_random_uuid())$$, '22023', 'invalid_quantity', 'missing quantity refused');
+select throws_ok($$select public.save_order('d0000000-0000-4000-8000-00000000000d', 8200,
+  jsonb_build_array(jsonb_build_object('product_id', current_setting('t.spf'), 'quantity', 1)),
+  gen_random_uuid())$$, '22023', 'invalid_discount', 'missing discount refused');
 select throws_ok($$select public.save_order('d0000000-0000-4000-8000-00000000000d', 8200, '[]'::jsonb, gen_random_uuid())$$,
   '22023', 'no_lines', 'empty order refused');
 

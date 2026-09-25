@@ -37,8 +37,9 @@ export default async function ApprovalsPage() {
     )
     .eq("approval_status", "pending")
     .eq("order.status", "pending_approval")
-    .order("created_at", { ascending: true, referencedTable: "orders" })
     .returns<PendingLine[]>();
+  // Oldest request first (ISO timestamps sort as strings).
+  data?.sort((a, b) => (a.order?.created_at ?? "").localeCompare(b.order?.created_at ?? "") || a.line_no - b.line_no);
 
   const usd = (c: number) => formatUsd(c, locale.intl);
 
