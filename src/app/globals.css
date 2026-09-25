@@ -1,26 +1,38 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-sand-50: #fbf6ec;
+  --color-sand-100: #f5ead3;
+  --color-sand-300: #e0c894;
+  --color-sand-500: #c4a064;
+  --color-sand-800: #6b5424;
+  --color-sand-900: #4a3a19;
+  --color-brand-700: #0b3d33;
+  --color-brand-800: #083028;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #f7f7f5;
+  color: #1c1c1c;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Arabic", sans-serif;
+}
+
+/* Numbers line up in totals and tables */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The blocked band must not rely on colour alone: stripe + icon + text label. */
+.band-blocked {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgb(254 226 226),
+    rgb(254 226 226) 8px,
+    rgb(254 242 242) 8px,
+    rgb(254 242 242) 16px
+  );
 }
