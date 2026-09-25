@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatDateTime, locale, t } from "@/i18n";
+import { formatShortDateTime, locale, t } from "@/i18n";
 import { requireProfile } from "@/lib/auth";
 import { formatSdg, formatUsd, sumCents } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
@@ -112,7 +112,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-neutral-900">{o.customer?.name}</p>
                     <p className="truncate text-xs text-neutral-500">
-                      <span className="tabular">#{o.order_number}</span> · {formatDateTime(o.created_at)}
+                      <span className="tabular">#{o.order_number}</span> · {formatShortDateTime(o.created_at)}
                       {profile.role === "owner" && o.creator?.full_name ? ` · ${o.creator.full_name}` : ""}
                     </p>
                     <div className="mt-1.5 sm:hidden">

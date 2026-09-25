@@ -32,16 +32,16 @@ export function NavLinks({ items, label }: { items: NavItem[]; label: string }) 
   const pathname = usePathname();
   return (
     <nav aria-label={label} className="-mb-px overflow-x-auto [scrollbar-width:none]">
-      <ul className="flex gap-1">
+      <ul className="flex sm:gap-1">
         {items.map((item) => {
           const active = isActive(pathname, item.href);
           return (
-            <li key={item.href}>
+            <li key={item.href} className="flex-1 sm:flex-none">
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cx(
-                  "relative inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-t-lg px-2.5 text-sm font-medium transition-colors sm:px-3",
+                  "relative flex min-h-11 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-t-lg px-1 text-[13px] font-medium transition-colors sm:inline-flex sm:w-auto sm:px-3 sm:text-sm",
                   active ? "text-white" : "text-white/70 hover:text-white",
                 )}
               >

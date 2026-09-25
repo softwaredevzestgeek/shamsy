@@ -67,7 +67,7 @@
     "recent": "Recent orders",
     "lines": "{count} line(s)",
     "filterAll": "All",
-    "filterPending": "Awaiting approval",
+    "filterPending": "Awaiting",
     "filterConfirmed": "Confirmed",
     "filterLabel": "Filter orders",
     "emptyFiltered": "No orders with this status."

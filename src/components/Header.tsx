@@ -54,13 +54,13 @@ export function Header({ profile }: { profile: Profile }) {
           <SunLogo size={30} />
           <span className="leading-tight">
             <span className="block text-base font-bold tracking-tight">{t("app.name")}</span>
-            <span className="block text-[11px] text-white/65">{t("app.tagline")}</span>
+            <span className="hidden text-[11px] text-white/65 sm:block">{t("app.tagline")}</span>
           </span>
         </Link>
 
         <div className="flex min-w-0 items-center gap-2">
-          <div className="min-w-0 max-w-[40vw] text-end">
-            <p className="truncate text-sm font-semibold">{name}</p>
+          <div className="min-w-0 text-end">
+            <p className="hidden truncate text-sm font-semibold sm:block">{name}</p>
             <p className="text-xs text-white/65">{t(`roles.${profile.role}`)}</p>
           </div>
           <span
