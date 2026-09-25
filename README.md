@@ -260,5 +260,5 @@ supabase/
 scripts/
   seed-users.ts             npm run seed:users
   verify.ts                 npm run verify
-NOTES.md                    notes for the client (draft)
+NOTES.md                    note for the client
 ```
