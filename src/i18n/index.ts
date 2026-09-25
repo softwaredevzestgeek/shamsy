@@ -52,13 +52,14 @@ export function hasMessage(key: string): key is MessageKey {
   return lookup(key) !== undefined;
 }
 
-/** Compact form for lists on small screens: "25 Sep, 09:03". */
+/** Compact 24-hour form for lists on small screens (en-US: "Sep 25, 09:03"). */
 export function formatShortDateTime(value: string | Date): string {
   return new Intl.DateTimeFormat(locale.intl, {
     day: "numeric",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
     timeZone: locale.timeZone,
   }).format(typeof value === "string" ? new Date(value) : value);
 }
