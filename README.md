@@ -6,10 +6,27 @@ Every saved order keeps the rate, prices and amounts it was saved with, as integ
 
 **Stack:** Next.js 16 (App Router) + TypeScript · Tailwind CSS 4 · Supabase (Postgres, Auth, RLS) via `@supabase/ssr` · Vitest · pgTAP · Vercel.
 
+## Screenshots
+
+Taken from the live app (https://shamsy.vercel.app) with the client's worked example at 8,200 SDG per USD.
+
+| Adviser enters the order | Line above 5% blocks saving | Rate below minimum refused |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/order-phone.png" width="250" alt="Order screen on a phone: sand and red lines, blocked line, dealer pays 45,018,000 SDG"> | <img src="docs/screenshots/adviser-blocked-phone.png" width="250" alt="Adviser view: Save order disabled, Send for owner approval shown"> | <img src="docs/screenshots/rate-refused-phone.png" width="250" alt="Rate 7,900 reset to 8,000 with the message Minimum rate is 8,000 SDG per USD"> |
+| **1.94% sand · 4.32% red · 7.25% blocked** | **Save disabled, request goes to the owner** | **7,900 → 8,000, with a message** |
+
+| Saved order (stored values only) | Desktop: form + sticky summary |
+|:---:|:---:|
+| <img src="docs/screenshots/order-view-phone.png" width="250" alt="Saved order 1005: 45,018,000 SDG, $5,490 at 8,200 SDG per USD"> | <img src="docs/screenshots/order-desktop.png" width="560" alt="Desktop order screen with the summary panel"> |
+| **#1005: $5,490 = 45,018,000 SDG at 8,200** | **Dealer pays 45,018,000 SDG** |
+
+<img src="docs/screenshots/orders-desktop.png" width="820" alt="Orders list on desktop with status filters">
+
 ---
 
 ## Contents
 
+- [Screenshots](#screenshots)
 - [Setup](#setup)
 - [Deploying to Vercel](#deploying-to-vercel)
 - [Demo walkthrough (for the video)](#demo-walkthrough-for-the-video)
