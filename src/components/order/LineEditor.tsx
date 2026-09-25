@@ -47,7 +47,7 @@ export function LineEditor({ index, line, evaluated, thresholds, isOwner, isNew,
   return (
     <li ref={ref} className={cx("relative animate-rise scroll-mb-48 overflow-hidden rounded-2xl border shadow-sm transition-colors duration-300", bandCardClass[band])}>
       <span aria-hidden className={cx("absolute inset-y-0 start-0 w-1.5 transition-colors duration-300", bandStripClass[band])} />
-      <fieldset className="p-3 ps-5">
+      <fieldset className="p-3 ps-4 sm:ps-5">
         <legend className="sr-only">{t("order.line", { n })}</legend>
 
         {/* Product */}

@@ -31,7 +31,7 @@ export const buttonWarning =
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <section className={cx("rounded-2xl border border-black/5 bg-white p-4 shadow-sm shadow-black/[0.03]", className)}>
+    <section className={cx("rounded-2xl border border-black/5 bg-white p-3.5 shadow-sm shadow-black/[0.03] sm:p-5", className)}>
       {children}
     </section>
   );
