@@ -90,7 +90,7 @@
     "addLine": "Add product",
     "removeLine": "Remove line {n}",
     "rate": "Exchange rate (SDG per 1 USD)",
-    "rateHint": "Minimum {min}. One rate for the whole order.",
+    "rateHint": "One rate for the whole order.",
     "rateBelowMin": "Minimum rate is {min} SDG per USD",
     "rateInvalid": "Enter a whole number. Minimum rate is {min} SDG per USD",
     "totals": "Totals",
@@ -139,8 +139,9 @@
     "selected": "Selected",
     "searchDealer": "Search dealers…",
     "noDealerMatch": "No dealer matches.",
-    "inOrder": "×{count} in order",
-    "blockedShort": "Blocked line(s) need owner approval"
+    "inOrder": "×{count}",
+    "blockedShort": "Blocked line(s) need owner approval",
+    "inOrderLabel": "{count} already in this order"
   },
   "lineErrors": {
     "needProduct": "Choose a product.",
