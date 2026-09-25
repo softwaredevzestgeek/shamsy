@@ -59,7 +59,7 @@ export function Header({ profile }: { profile: Profile }) {
         </Link>
 
         <div className="flex min-w-0 items-center gap-2">
-          <div className="hidden min-w-0 text-end sm:block">
+          <div className="min-w-0 max-w-[40vw] text-end">
             <p className="truncate text-sm font-semibold">{name}</p>
             <p className="text-xs text-white/65">{t(`roles.${profile.role}`)}</p>
           </div>
@@ -82,12 +82,7 @@ export function Header({ profile }: { profile: Profile }) {
         </div>
       </div>
       <div className="mx-auto max-w-5xl px-2 sm:px-3">
-        <div className="flex items-center justify-between gap-2">
-          <NavLinks items={items} label={t("nav.mainNav")} />
-          <span className="me-2 hidden shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium text-white/80 max-sm:inline">
-            {t(`roles.${profile.role}`)}
-          </span>
-        </div>
+        <NavLinks items={items} label={t("nav.mainNav")} />
       </div>
     </header>
   );

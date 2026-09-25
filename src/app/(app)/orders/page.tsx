@@ -38,10 +38,12 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
         title={t("orders.title")}
         subtitle={t("orders.subtitle")}
         action={
-          <Link href="/orders/new" className={cx(buttonPrimary, "hidden sm:inline-flex")}>
-            <IconPlus size={18} />
-            {t("orders.newOrder")}
-          </Link>
+          <div className="hidden sm:block">
+            <Link href="/orders/new" className={buttonPrimary}>
+              <IconPlus size={18} />
+              {t("orders.newOrder")}
+            </Link>
+          </div>
         }
       />
 
@@ -108,12 +110,9 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
                   />
                   <Avatar name={o.customer?.name ?? "?"} />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-semibold text-neutral-900">{o.customer?.name}</span>
-                      <span className="tabular shrink-0 text-xs text-neutral-400">#{o.order_number}</span>
-                    </div>
+                    <p className="truncate font-semibold text-neutral-900">{o.customer?.name}</p>
                     <p className="truncate text-xs text-neutral-500">
-                      {formatDateTime(o.created_at)}
+                      <span className="tabular">#{o.order_number}</span> · {formatDateTime(o.created_at)}
                       {profile.role === "owner" && o.creator?.full_name ? ` · ${o.creator.full_name}` : ""}
                     </p>
                     <div className="mt-1.5 sm:hidden">
@@ -127,7 +126,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
                     <p className="font-bold text-neutral-900">{formatUsd(o.total_cents, locale.intl)}</p>
                     <p className="text-xs text-neutral-500">{formatSdg(o.total_sdg_piastres, locale.intl)}</p>
                   </div>
-                  <IconChevron size={18} className="shrink-0 text-neutral-300 transition group-hover:translate-x-0.5 group-hover:text-neutral-500 rtl:-scale-x-100" />
+                  <IconChevron size={18} className="hidden shrink-0 text-neutral-300 transition group-hover:translate-x-0.5 group-hover:text-neutral-500 sm:block rtl:-scale-x-100" />
                 </Link>
               </li>
             ))}

@@ -191,11 +191,11 @@ export function Stat({ label, value, tone = "default", icon }: { label: string; 
   };
   return (
     <div className={cx("min-w-0 rounded-2xl border border-black/5 p-3 shadow-sm", tones[tone])}>
-      <div className={cx("flex items-center gap-1.5 text-xs font-medium", tone === "brand" ? "text-white/75" : "text-neutral-600")}>
-        {icon}
-        <span className="truncate">{label}</span>
+      <div className={cx("flex items-start gap-1.5 text-[11px] font-medium leading-tight sm:text-xs", tone === "brand" ? "text-white/75" : "text-neutral-600")}>
+        <span className="mt-px hidden shrink-0 sm:inline">{icon}</span>
+        <span>{label}</span>
       </div>
-      <div className="tabular mt-1 truncate text-lg font-bold">{value}</div>
+      <div className="tabular mt-1 truncate text-base font-bold sm:text-lg">{value}</div>
     </div>
   );
 }

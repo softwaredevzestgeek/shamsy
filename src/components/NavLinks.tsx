@@ -41,11 +41,11 @@ export function NavLinks({ items, label }: { items: NavItem[]; label: string }) 
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cx(
-                  "relative inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-t-lg px-3 text-sm font-medium transition-colors",
+                  "relative inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-t-lg px-2.5 text-sm font-medium transition-colors sm:px-3",
                   active ? "text-white" : "text-white/70 hover:text-white",
                 )}
               >
-                {item.icon}
+                <span className="hidden sm:inline-flex">{item.icon}</span>
                 {item.label}
                 {item.badge}
                 <PendingHint />

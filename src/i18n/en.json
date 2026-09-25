@@ -100,7 +100,7 @@
     "totalSdg": "Total SDG",
     "atRate": "at {rate} SDG/USD",
     "save": "Save order",
-    "saveAndApprove": "Save and approve {count} blocked line(s)",
+    "saveAndApprove": "Save & approve {count} line(s)",
     "sendForApproval": "Send for owner approval",
     "saving": "Saving…",
     "blockedExplanation": "{count} line(s) have a discount above {max}. The order cannot be saved until the owner approves them. You can lower the discount, remove the line, or send the order for approval.",
