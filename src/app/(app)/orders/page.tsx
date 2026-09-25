@@ -7,7 +7,11 @@ import { ORDER_COLUMNS, type OrderRow } from "@/lib/types";
 import { Avatar, EmptyState, Notice, PageHeader, Stat, StatusBadge, buttonPrimary, cx } from "@/components/ui";
 import { IconCheck, IconChevron, IconClock, IconList, IconPlus } from "@/components/icons";
 
-export default async function OrdersPage() {
+type Filter = "all" | "pending_approval" | "confirmed";
+
+export default async function OrdersPage({ searchParams }: PageProps<"/orders">) {
+  const { status } = await searchParams;
+  const filter: Filter = status === "pending_approval" || status === "confirmed" ? status : "all";
   const profile = await requireProfile();
   const supabase = await createClient();
   // RLS limits an adviser to her own orders; the owner sees all.
@@ -21,6 +25,12 @@ export default async function OrdersPage() {
   const orders = data ?? [];
   const pending = orders.filter((o) => o.status === "pending_approval").length;
   const confirmedUsd = sumCents(orders.filter((o) => o.status === "confirmed").map((o) => o.total_cents));
+  const shown = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  const chips: Array<{ value: Filter; label: string; count: number }> = [
+    { value: "all", label: t("orders.filterAll"), count: orders.length },
+    { value: "pending_approval", label: t("orders.filterPending"), count: pending },
+    { value: "confirmed", label: t("orders.filterConfirmed"), count: orders.length - pending },
+  ];
 
   return (
     <div className="space-y-5">
@@ -60,9 +70,33 @@ export default async function OrdersPage() {
 
       {orders.length > 0 && (
         <section>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">{t("orders.recent")}</h2>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="hidden text-xs font-semibold uppercase tracking-wide text-neutral-500 sm:block">{t("orders.recent")}</h2>
+            <nav aria-label={t("orders.filterLabel")} className="-mx-1 flex gap-1.5 overflow-x-auto px-1 py-0.5 [scrollbar-width:none]">
+              {chips.map((c) => {
+                const active = c.value === filter;
+                return (
+                  <Link
+                    key={c.value}
+                    href={c.value === "all" ? "/orders" : `/orders?status=${c.value}`}
+                    scroll={false}
+                    replace
+                    aria-current={active ? "page" : undefined}
+                    className={cx(
+                      "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition active:scale-95",
+                      active ? "border-brand-700 bg-brand-700 text-white" : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300",
+                    )}
+                  >
+                    {c.label}
+                    <span className={cx("tabular rounded-full px-1.5 text-xs", active ? "bg-white/20" : "bg-neutral-100 text-neutral-600")}>{c.count}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+          {shown.length === 0 && <p className="rounded-2xl border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-600">{t("orders.emptyFiltered")}</p>}
           <ul aria-label={t("orders.listLabel")} className="stagger space-y-2">
-            {orders.map((o) => (
+            {shown.map((o) => (
               <li key={o.id}>
                 <Link
                   href={`/orders/${o.id}`}

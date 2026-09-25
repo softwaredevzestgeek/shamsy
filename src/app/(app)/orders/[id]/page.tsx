@@ -6,7 +6,7 @@ import { formatBasisPointsAsPercent, formatInteger, formatSdg, formatUsd } from 
 import { createClient } from "@/lib/supabase/server";
 import { ORDER_COLUMNS, ORDER_LINE_COLUMNS, type OrderLineRow, type OrderRow } from "@/lib/types";
 import { Avatar, BandBadge, Card, Notice, StatusBadge, bandCardClass, bandStripClass, cx } from "@/components/ui";
-import { IconArrowBack, IconCheck, IconClock, IconExchange, IconShieldCheck } from "@/components/icons";
+import { IconArrowBack, IconCheck, IconClock, IconExchange, IconShieldCheck, IconWhatsApp } from "@/components/icons";
 
 /**
  * Read-only view rendered ONLY from values stored on the order and its lines:
@@ -44,6 +44,18 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
   const thresholds = { sandMaxBp: order.discount_sand_max_bp, redMaxBp: order.discount_red_max_bp };
   const usd = (c: number) => formatUsd(c, locale.intl);
   const confirmed = order.status === "confirmed";
+
+  // WhatsApp share text, built only from the stored values (like the rest of this page).
+  const shareText = t("orderView.shareText", {
+    number: order.order_number,
+    dealer: order.customer?.name ?? "",
+    lines: lines
+      .map((l) => t("orderView.shareLine", { qty: formatInteger(l.quantity, locale.intl), product: l.product_name, total: usd(l.line_total_cents) }))
+      .join("\n"),
+    usd: usd(order.total_cents),
+    rate: formatInteger(order.rate, locale.intl),
+    sdg: formatSdg(order.total_sdg_piastres, locale.intl),
+  }) + (confirmed ? "" : `\n${t("orderView.pendingNote")}`);
 
   return (
     <div className="space-y-5">
@@ -92,6 +104,15 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
               {t("orderView.createdBy")}: {order.creator.full_name}
             </span>
           )}
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ms-auto inline-flex min-h-8 items-center gap-1.5 rounded-full bg-[#25d366] px-3 py-1 font-semibold text-[#063b1f] transition hover:brightness-105 active:scale-95"
+          >
+            <IconWhatsApp size={14} />
+            {t("orderView.shareWhatsApp")}
+          </a>
         </div>
       </section>
 

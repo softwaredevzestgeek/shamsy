@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { locale, t } from "@/i18n";
 import { bandLabel } from "@/lib/band-label";
 import type { DraftLine } from "@/lib/draft";
@@ -14,6 +15,8 @@ interface Props {
   evaluated: EvaluatedLine;
   thresholds: DiscountThresholds;
   isOwner: boolean;
+  /** Just added from a product tile: bring it into view. */
+  isNew?: boolean;
   onChange: (patch: Partial<DraftLine>) => void;
   onRemove: () => void;
 }
@@ -21,7 +24,14 @@ interface Props {
 const stepButton =
   "grid size-12 shrink-0 place-items-center text-xl font-semibold text-brand-700 transition hover:bg-brand-50 active:scale-90 disabled:text-neutral-300 disabled:active:scale-100";
 
-export function LineEditor({ index, line, evaluated, thresholds, isOwner, onChange, onRemove }: Props) {
+export function LineEditor({ index, line, evaluated, thresholds, isOwner, isNew, onChange, onRemove }: Props) {
+  const ref = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    if (!isNew) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    ref.current?.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+  }, [isNew]);
+
   const n = index + 1;
   const id = (field: string) => `line-${line.key}-${field}`;
   const result = evaluated.result;
@@ -35,7 +45,7 @@ export function LineEditor({ index, line, evaluated, thresholds, isOwner, onChan
   const discountError = evaluated.discountIssue ? t(`lineErrors.${evaluated.discountIssue}`) : null;
 
   return (
-    <li className={cx("relative animate-rise overflow-hidden rounded-2xl border shadow-sm transition-colors duration-300", bandCardClass[band])}>
+    <li ref={ref} className={cx("relative animate-rise scroll-mb-48 overflow-hidden rounded-2xl border shadow-sm transition-colors duration-300", bandCardClass[band])}>
       <span aria-hidden className={cx("absolute inset-y-0 start-0 w-1.5 transition-colors duration-300", bandStripClass[band])} />
       <fieldset className="p-3 ps-5">
         <legend className="sr-only">{t("order.line", { n })}</legend>

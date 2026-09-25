@@ -65,7 +65,12 @@
     "statPending": "Awaiting approval",
     "statConfirmedUsd": "Confirmed value",
     "recent": "Recent orders",
-    "lines": "{count} line(s)"
+    "lines": "{count} line(s)",
+    "filterAll": "All",
+    "filterPending": "Awaiting approval",
+    "filterConfirmed": "Confirmed",
+    "filterLabel": "Filter orders",
+    "emptyFiltered": "No orders with this status."
   },
   "order": {
     "newTitle": "Record an order",
@@ -133,7 +138,9 @@
     "minChip": "Min {min}",
     "selected": "Selected",
     "searchDealer": "Search dealers…",
-    "noDealerMatch": "No dealer matches."
+    "noDealerMatch": "No dealer matches.",
+    "inOrder": "×{count} in order",
+    "blockedShort": "Blocked line(s) need owner approval"
   },
   "lineErrors": {
     "needProduct": "Choose a product.",
@@ -163,7 +170,11 @@
     "qtyTimesPrice": "{qty} × {price}",
     "lines": "Lines",
     "summary": "Summary",
-    "approvedHistory": "Approval"
+    "approvedHistory": "Approval",
+    "shareWhatsApp": "Share on WhatsApp",
+    "shareText": "Shamsy · Order #{number}\nDealer: {dealer}\n{lines}\nTotal: {usd}\nRate: {rate} SDG per USD\nAmount to pay: {sdg}",
+    "shareLine": "• {qty} × {product}: {total}",
+    "pendingNote": "Waiting for owner approval. Not confirmed yet."
   },
   "approvals": {
     "title": "Approvals",

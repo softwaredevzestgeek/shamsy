@@ -65,6 +65,7 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<SubmitError | null>(null);
   const [dealerQuery, setDealerQuery] = useState("");
+  const [lastAddedKey, setLastAddedKey] = useState<string | null>(null);
   const inFlight = useRef(false);
   const finished = useRef(false);
 
@@ -171,13 +172,23 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
     }
   }
 
+  function addProduct(productId: string) {
+    const line = newLine(productId);
+    setLastAddedKey(line.key);
+    update((d) => ({ ...d, lines: [...d.lines, line] }));
+  }
+
+  const inOrder = new Map<string, number>();
+  for (const l of draft.lines) inOrder.set(l.productId, (inOrder.get(l.productId) ?? 0) + 1);
+
   const q = dealerQuery.trim().toLowerCase();
   const visibleCustomers = q
     ? customers.filter((c) => `${c.name} ${c.city}`.toLowerCase().includes(q))
     : customers;
 
-  const actions = (
+  const actions = (compact: boolean) => (
     <SaveActions
+      compact={compact}
       saving={saving}
       isOwner={isOwner}
       blockedCount={blockedCount}
@@ -279,6 +290,7 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
                   evaluated={evaluated.lines[i]}
                   thresholds={thresholds}
                   isOwner={isOwner}
+                  isNew={line.key === lastAddedKey}
                   onChange={(patch) => updateLine(line.key, patch)}
                   onRemove={() => update((d) => ({ ...d, lines: d.lines.filter((l) => l.key !== line.key) }))}
                 />
@@ -292,10 +304,18 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
               <button
                 key={p.id}
                 type="button"
-                onClick={() => update((d) => ({ ...d, lines: [...d.lines, newLine(p.id)] }))}
-                className="group flex min-h-16 flex-col justify-between gap-1 rounded-xl border border-neutral-200 bg-neutral-50/60 p-2.5 text-start transition hover:border-brand-500 hover:bg-brand-50 active:scale-[0.97]"
+                onClick={() => addProduct(p.id)}
+                className="group relative flex min-h-16 flex-col justify-between gap-1 rounded-xl border border-neutral-200 bg-neutral-50/60 p-2.5 text-start transition hover:border-brand-500 hover:bg-brand-50 active:scale-[0.97]"
               >
-                <span className="line-clamp-2 text-sm font-semibold leading-snug text-neutral-900">{p.name}</span>
+                <span className="line-clamp-2 pe-6 text-sm font-semibold leading-snug text-neutral-900">{p.name}</span>
+                {inOrder.has(p.id) && (
+                  <span
+                    key={inOrder.get(p.id)}
+                    className="absolute end-1.5 top-1.5 animate-pop rounded-full bg-sun-400 px-1.5 text-[11px] font-bold text-brand-900"
+                  >
+                    {t("order.inOrder", { count: inOrder.get(p.id) ?? 0 })}
+                  </span>
+                )}
                 <span className="flex items-center justify-between gap-1">
                   <span className="tabular text-sm font-bold text-brand-700">{formatUsd(p.price_cents, locale.intl)}</span>
                   <span className="grid size-6 place-items-center rounded-full bg-brand-700 text-white transition group-hover:scale-110">
@@ -348,6 +368,16 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
           </div>
         </Card>
 
+        {blockedCount > 0 && (
+          <div className="lg:hidden">
+            <Notice tone={isOwner ? "warning" : "error"} role="status">
+              {isOwner
+                ? t("order.ownerBlockedExplanation", { count: blockedCount, max: redMaxText })
+                : t("order.blockedExplanation", { count: blockedCount, max: redMaxText })}
+            </Notice>
+          </div>
+        )}
+
         <div className="flex justify-center lg:justify-start">
           <button type="button" className="min-h-11 px-2 text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-800" onClick={discard}>
             {t("order.discardDraft")}
@@ -359,7 +389,7 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
       <aside className="hidden lg:sticky lg:top-32 lg:block">
         <SummaryPanel evaluated={evaluated} lineCount={draft.lines.length}>
           <SubmitFeedback error={submitError} />
-          {actions}
+          {actions(false)}
         </SummaryPanel>
       </aside>
 
@@ -381,7 +411,7 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
               )}
             </div>
           </div>
-          {actions}
+          {actions(true)}
         </div>
       </div>
     </form>
@@ -409,6 +439,7 @@ function SubmitFeedback({ error }: { error: SubmitError | null }) {
 }
 
 function SaveActions({
+  compact,
   saving,
   isOwner,
   blockedCount,
@@ -416,6 +447,7 @@ function SaveActions({
   redMaxText,
   onSendForApproval,
 }: {
+  compact: boolean;
   saving: boolean;
   isOwner: boolean;
   blockedCount: number;
@@ -426,21 +458,28 @@ function SaveActions({
   const label = isOwner && blockedCount > 0 ? t("order.saveAndApprove", { count: blockedCount }) : t("order.save");
   return (
     <div className="space-y-2">
-      {blockedCount > 0 && (
+      {blockedCount > 0 && !compact && (
         <p className={cx("rounded-xl px-3 py-2 text-xs font-medium", isOwner ? "bg-amber-50 text-amber-950" : "bg-red-50 text-red-900")}>
           {isOwner
             ? t("order.ownerBlockedExplanation", { count: blockedCount, max: redMaxText })
             : t("order.blockedExplanation", { count: blockedCount, max: redMaxText })}
         </p>
       )}
-      <div className="flex flex-col gap-2">
+      {compact && adviserBlocked && (
+        <p className="text-center text-xs font-medium text-red-800">{t("order.blockedShort")}</p>
+      )}
+      <div className={cx("flex gap-2", compact ? "flex-row-reverse" : "flex-col")}>
         {adviserBlocked && (
-          <button type="button" className={cx(buttonWarning, "w-full")} disabled={saving} onClick={onSendForApproval}>
+          <button type="button" className={cx(buttonWarning, "w-full", compact && "flex-[1.4] px-3 text-sm")} disabled={saving} onClick={onSendForApproval}>
             {saving ? <IconSpinner /> : null}
             {saving ? t("order.saving") : t("order.sendForApproval")}
           </button>
         )}
-        <button type="submit" className={cx(buttonPrimary, "w-full")} disabled={saving || adviserBlocked}>
+        <button
+          type="submit"
+          className={cx(buttonPrimary, "w-full", compact && adviserBlocked && "flex-1 px-3 text-sm")}
+          disabled={saving || adviserBlocked}
+        >
           {saving && !adviserBlocked ? <IconSpinner /> : null}
           {saving && !adviserBlocked ? t("order.saving") : label}
         </button>
