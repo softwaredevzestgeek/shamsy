@@ -74,7 +74,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
       <section className="animate-rise overflow-hidden rounded-2xl bg-gradient-to-br from-brand-800 to-brand-600 text-white shadow-lg shadow-brand-900/15">
         <div className="flex flex-wrap items-start justify-between gap-3 p-5 pb-4">
           <div className="flex min-w-0 items-center gap-3">
-            <Avatar name={order.customer?.name ?? "?"} className="bg-white/15 text-white" />
+            <Avatar name={order.customer?.name ?? "?"} tone="bg-white/15 text-white" />
             <div className="min-w-0">
               <h1 className="truncate text-xl font-bold">{t("orderView.title", { number: order.order_number })}</h1>
               <p className="truncate text-sm text-white/75">

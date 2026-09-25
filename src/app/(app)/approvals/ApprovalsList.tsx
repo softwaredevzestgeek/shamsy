@@ -49,7 +49,7 @@ export function ApprovalsList({ lines }: { lines: PendingLine[] }) {
             {visible.map((l) => (
               <li key={l.id} className="overflow-hidden rounded-2xl border-2 border-red-700/80 bg-white shadow-sm">
                 <div className="band-blocked flex items-center gap-3 px-4 py-3">
-                  <Avatar name={l.order?.customer?.name ?? "?"} className="bg-white text-red-900" />
+                  <Avatar name={l.order?.customer?.name ?? "?"} tone="bg-white text-red-900" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-neutral-900">{l.order?.customer?.name}</p>
                     <p className="truncate text-xs text-neutral-700">

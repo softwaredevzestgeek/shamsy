@@ -248,23 +248,29 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
                   aria-checked={selected}
                   onClick={() => update((d) => ({ ...d, customerId: c.id }))}
                   className={cx(
-                    "relative flex min-h-14 items-center gap-3 rounded-xl border p-2.5 text-start transition active:scale-[0.98]",
+                    "group relative flex min-h-16 items-center gap-3 rounded-xl border p-3 text-start transition active:scale-[0.98]",
+                    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/25",
                     selected
-                      ? "border-brand-500 bg-brand-50 ring-2 ring-brand-500/30"
-                      : "border-neutral-200 bg-white hover:border-neutral-300",
+                      ? "border-brand-600 bg-brand-50 shadow-sm shadow-brand-900/10"
+                      : "border-neutral-200 bg-white hover:border-brand-500/50 hover:bg-neutral-50",
                     attempted && evaluated.missingCustomer && "border-red-300",
                   )}
                 >
-                  <Avatar name={c.name} />
-                  <span className="min-w-0">
-                    <span className="block truncate font-semibold text-neutral-900">{c.name}</span>
-                    <span className="block truncate text-xs text-neutral-500">{c.city}</span>
+                  <span className="relative shrink-0">
+                    <Avatar name={c.name} tone={selected ? "bg-brand-700 text-white" : undefined} />
+                    {selected && (
+                      <span className="absolute -bottom-0.5 -end-0.5 grid size-5 animate-pop place-items-center rounded-full bg-sun-400 text-brand-900 ring-2 ring-brand-50">
+                        <IconCheck size={11} strokeWidth={3.5} />
+                      </span>
+                    )}
                   </span>
-                  {selected && (
-                    <span className="absolute end-2 top-2 grid size-5 animate-pop place-items-center rounded-full bg-brand-600 text-white">
-                      <IconCheck size={12} strokeWidth={3} />
+                  <span className="min-w-0 flex-1">
+                    <span className={cx("line-clamp-2 font-semibold leading-snug", selected ? "text-brand-800" : "text-neutral-900")}>
+                      {c.name}
                     </span>
-                  )}
+                    <span className={cx("block truncate text-xs", selected ? "text-brand-600" : "text-neutral-500")}>{c.city}</span>
+                  </span>
+                  {selected && <span className="sr-only">{t("order.selected")}</span>}
                 </button>
               );
             })}

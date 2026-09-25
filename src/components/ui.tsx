@@ -165,13 +165,18 @@ const avatarTones = [
   "bg-rose-100 text-rose-800",
 ];
 
-export function Avatar({ name, className }: { name: string; className?: string }) {
+/** `tone` replaces the name-derived colours (background + text) entirely. */
+export function Avatar({ name, className, tone }: { name: string; className?: string; tone?: string }) {
   let hash = 0;
   for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
   return (
     <span
       aria-hidden
-      className={cx("grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold", avatarTones[hash % avatarTones.length], className)}
+      className={cx(
+        "grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold transition-colors",
+        tone ?? avatarTones[hash % avatarTones.length],
+        className,
+      )}
     >
       {initials(name)}
     </span>
