@@ -68,6 +68,9 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
   const [lastAddedKey, setLastAddedKey] = useState<string | null>(null);
   const inFlight = useRef(false);
   const finished = useRef(false);
+  // When a refused rate is reset on blur, the same tap must not save: the
+  // adviser should see the new rate and the message before sending.
+  const rateResetAt = useRef(0);
 
   // Every change is kept on the device.
   useEffect(() => {
@@ -100,6 +103,7 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
       setRateNotice(null);
     } else {
       // Refuse, put the value back to the minimum, and say why.
+      rateResetAt.current = Date.now();
       update((d) => ({ ...d, rate: String(check.fallback) }));
       setRateNotice(
         check.reason === "below_minimum"
@@ -121,6 +125,11 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
 
   async function submit() {
     if (inFlight.current) return; // no double submission
+    if (Date.now() - rateResetAt.current < 1000) {
+      rateResetAt.current = 0;
+      document.getElementById("rate")?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
     setAttempted(true);
     if (!evaluated.valid) {
       setSubmitError({
