@@ -38,6 +38,10 @@ Requirements: Node 20.9+ (22 LTS recommended), npm, a Supabase account. The Supa
    ```bash
    npx supabase db push
    ```
+   *No IPv6 on your network?* The direct `db.<ref>.supabase.co` host is IPv6-only. Use the IPv4 session pooler instead (Dashboard → **Connect** → Session pooler), URL-encoding special characters in the password (`@` → `%40`):
+   ```bash
+   npx supabase db push --db-url "postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres" --include-seed
+   ```
 5. **Load the seed data** (settings row, 4 products, 3 dealers). Pick one:
    - **CLI:** `npx supabase db push --include-seed`, which runs `supabase/seed.sql` after the migrations. The seed is idempotent, so running it again is safe.
    - **SQL editor:** open *Dashboard → SQL Editor*, paste the contents of `supabase/seed.sql`, and run it.
@@ -95,32 +99,36 @@ Requirements: Node 20.9+ (22 LTS recommended), npm, a Supabase account. The Supa
 
 ## Demo walkthrough (for the video)
 
-This follows the client's worked example. Log in on a phone-sized window (360 px wide), for example with Chrome DevTools device mode.
+This follows the client's worked example. Record at phone width (375 px, e.g. Chrome DevTools → device mode → iPhone), or at desktop width to show the sticky summary panel.
 
 **As the adviser** (`adviser@shamsy.test`):
 
-1. Go to **New order** and choose the dealer **Ahmed Trading — Khartoum**.
-2. Line 1: **SPF 6000 ES Plus**, quantity **4**, discount **40**. Unit price $515 (read-only), line value **$2,060**, **1.94%**, band **Sand**, line total **$2,020**.
-3. **Add product**. Line 2: **Hope 5.0L-B1**, quantity **2**, discount **70**. Line value **$1,620**, **4.32%**, band **Red**, line total **$1,550**.
-4. **Add product**. Line 3: **Hope 16.0LM-A1**, quantity **1**, discount **150**. Line value **$2,070**, **7.25%**, band **⛔ Blocked**, line total **$1,920**. The line is striped and labelled, so colour is not the only signal.
-5. Rate: type **7900** and tap outside the field. It is refused and resets to **8,000** with the message *"Minimum rate is 8,000 SDG per USD"*.
-6. Type **8200**. Totals: **$5,490**, **45,018,000 SDG**.
-7. **Save order** is disabled, with an explanation. A red **Send for owner approval** button appears.
-8. *(Weak connection)* In DevTools, set Network to Offline and reload. The draft is restored from the device. Set it back to Online.
-9. Remove line 3 (×). Total **$3,570 = 29,274,000 SDG**, no blocked line, and **Save order** is enabled. You can save this as its own order to show the saveable case.
-10. For the approval flow, build the 3-line order again and tap **Send for owner approval**. The order is created as *Waiting for owner approval* and is **not** confirmed.
+1. **New order** (tab in the header, or the round **+** button on phones).
+2. **Step 1 · Dealer:** tap **Ahmed Trading — Khartoum**. The card turns green with a check.
+3. **Step 2 · Products:** tap the **SPF 6000 ES Plus** tile. A line appears with quantity 1.
+   Tap **+** three times → quantity **4**. Type **40** in *Discount (USD)*.
+   Shown: line value **$2,060**, **1.94%**, band **● Sand**, line total **$2,020**.
+4. Tap the **Hope 5.0L-B1** tile, quantity **2**, discount **70** → **$1,620**, **4.32%**, **▲ Red**, **$1,550**.
+5. Tap the **Hope 16.0LM-A1** tile, quantity **1**, discount **150** → **$2,070**, **7.25%**, **⛔ Blocked** (striped card + label, not colour alone), **$1,920**.
+6. **Step 3 · Exchange rate:** type **7900** and tap outside → refused, reset to **8,000**, message *"Minimum rate is 8,000 SDG per USD"*.
+7. Type **8200** → *Dealer pays* **45,018,000 SDG**, **$5,490**.
+8. **Save order** is disabled; the red **Send for owner approval** button is shown, with the reason.
+9. *(Weak connection, optional)* DevTools → Network → **Offline**, reload: the draft comes back ("Your unsaved order was restored"). Back to Online.
+10. Remove line 3 (**×**) → **$3,570 = 29,274,000 SDG**, no blocked line, **Save order** enabled. (Optionally save this as its own order.)
+11. Add the Hope 16.0LM-A1 line again (discount 150) and tap **Send for owner approval** → the order opens as **Waiting for owner approval**, not confirmed.
 
 **As the owner** (`owner@shamsy.test`):
 
-11. **Approvals** shows the Hope 16.0LM-A1 line: order number, dealer, adviser, $150, **7.25%**. Tap **Approve**.
-12. Open the order. It is **Confirmed**, the rate is **8,200 SDG per USD**, and the totals are **$5,490** and **45,018,000 SDG**. Line 3 shows *Approved by Demo Owner on …*.
-13. **Settings**: set minimum rate and default rate to **9,000** and save.
-14. Reopen the order. It still shows **8,200** and **45,018,000 SDG**, because the page reads only the stored values.
-15. Optionally, open **New order**: the rate now defaults to 9,000, and 8,200 is refused.
-16. Set Settings back to **8,000 / 8,000**.
-17. Optionally, as the owner, enter the 3-line order yourself. The button reads **Save and approve 1 blocked line(s)** and the order is confirmed immediately, with the owner recorded as approver.
+12. **Approvals** (the badge shows 1): the Hope 16.0LM-A1 line with dealer, adviser, **$150**, **⛔ 7.25%**. Tap **Approve** — the card disappears immediately.
+13. Open the order (**Orders** → filter **Confirmed**): **Confirmed**, **8,200 SDG per USD**, **$5,490**, **45,018,000 SDG**; line 3 shows *Approved by Demo Owner on …*.
+14. **Settings:** minimum rate and default rate → **9,000**, save.
+15. Reopen the order: still **8,200** and **45,018,000 SDG** — the page reads only stored values.
+16. *(Optional)* **New order** now defaults to 9,000 and refuses 8,200.
+17. Settings back to **8,000 / 8,000**.
+18. *(Optional)* As the owner, enter the 3-line order yourself: the button reads **Save and approve 1 blocked line(s)** and the order is confirmed at once, with the owner recorded as approver.
+19. *(Optional)* On the order page, **Share on WhatsApp** prefills the summary for the dealer.
 
-To prove the rules hold server-side on camera, run `npm run verify` in a terminal. It prints PASS/FAIL for each check.
+To prove the rules server-side on camera, run `npm run verify` in a terminal (14 PASS/FAIL checks).
 
 ---
 
@@ -176,7 +184,8 @@ A deferred constraint trigger also checks, at commit, that every new order's sub
 - The draft is saved on every keystroke and restored after a reload or crash. It is cleared only after a confirmed save.
 - Saves time out after 30 seconds with a clear message.
 - An offline banner uses `navigator.onLine`.
-- There are no web fonts and no heavy libraries.
+- There are no web fonts and no UI or icon libraries (icons are inline SVG).
+- Every route has a `loading.tsx` skeleton, so navigation is instant and prefetchable; visited pages stay in the client router cache for 30 s (`staleTimes`), and every write calls `router.refresh()`.
 - The main screen needs one RPC to save.
 
 **Accessible bands.** Colour is never the only signal. Every band has a text label and an icon (● sand, ▲ red, ⛔ blocked), and the blocked band is also striped.
