@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Shamsy",
-    "tagline": "Order recording",
+    "tagline": "Solar distribution · Orders",
     "skipToContent": "Skip to content"
   },
   "nav": {
@@ -23,7 +23,11 @@
     "submit": "Sign in",
     "submitting": "Signing in…",
     "failed": "Email or password is not correct.",
-    "network": "No connection. Check your network and try again."
+    "network": "No connection. Check your network and try again.",
+    "welcome": "Welcome back",
+    "subtitle": "Sign in to record dealer orders.",
+    "heroTitle": "Orders in dollars and pounds, exact to the piastre.",
+    "heroPoints": "Fixed prices · Discount control · Rate locked on every order"
   },
   "config": {
     "missingTitle": "Supabase is not configured",
@@ -55,7 +59,13 @@
     "number": "Order #{number}",
     "total": "Total",
     "listLabel": "Orders list",
-    "loadFailed": "Could not load orders: {message}"
+    "loadFailed": "Could not load orders: {message}",
+    "subtitle": "Every order keeps the rate it was saved with.",
+    "statTotal": "Orders",
+    "statPending": "Awaiting approval",
+    "statConfirmedUsd": "Confirmed value",
+    "recent": "Recent orders",
+    "lines": "{count} line(s)"
   },
   "order": {
     "newTitle": "Record an order",
@@ -105,7 +115,25 @@
     "openSavedOrder": "Open that order",
     "loading": "Loading the order form…",
     "noProducts": "No products are available.",
-    "noCustomers": "No dealers are available."
+    "noCustomers": "No dealers are available.",
+    "newSubtitle": "Pick the dealer, add products, set today's rate.",
+    "stepDealer": "Dealer",
+    "stepProducts": "Products",
+    "stepRate": "Exchange rate",
+    "addProductTitle": "Add a product",
+    "addProductHint": "Tap to add a line. Prices are fixed.",
+    "emptyLines": "No products yet. Tap a product below to add it.",
+    "decrease": "Decrease quantity, line {n}",
+    "increase": "Increase quantity, line {n}",
+    "each": "each",
+    "summary": "Order summary",
+    "dealerPays": "Dealer pays",
+    "lineCount": "{count} line(s)",
+    "sdgPerUsd": "SDG per USD",
+    "minChip": "Min {min}",
+    "selected": "Selected",
+    "searchDealer": "Search dealers…",
+    "noDealerMatch": "No dealer matches."
   },
   "lineErrors": {
     "needProduct": "Choose a product.",
@@ -132,7 +160,10 @@
     "approval": "Approval",
     "notFound": "Order not found, or you do not have access to it.",
     "back": "Back to orders",
-    "qtyTimesPrice": "{qty} × {price}"
+    "qtyTimesPrice": "{qty} × {price}",
+    "lines": "Lines",
+    "summary": "Summary",
+    "approvedHistory": "Approval"
   },
   "approvals": {
     "title": "Approvals",
@@ -143,7 +174,8 @@
     "approve": "Approve",
     "approving": "Approving…",
     "approved": "Approved",
-    "openOrder": "Open order"
+    "openOrder": "Open order",
+    "count": "{count} line(s) waiting"
   },
   "settings": {
     "title": "Settings",
@@ -160,7 +192,10 @@
     "invalidPercent": "Enter a percentage with at most 2 decimals, e.g. 3 or 2.50.",
     "defaultBelowMin": "The default rate cannot be below the minimum rate.",
     "bandsOrder": "The sand limit cannot be above the red limit.",
-    "lastUpdated": "Last updated {date}"
+    "lastUpdated": "Last updated {date}",
+    "ratesTitle": "Exchange rate",
+    "bandsTitle": "Discount bands",
+    "preview": "Preview"
   },
   "errors": {
     "unknown": "The server refused the request: {message}",

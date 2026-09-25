@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { t } from "@/i18n";
 import { createClient } from "@/lib/supabase/client";
 import { Notice, buttonPrimary, inputClass } from "@/components/ui";
+import { IconSpinner } from "@/components/icons";
 
 export function LoginForm({ next }: { next: string }) {
   const router = useRouter();
@@ -38,15 +39,16 @@ export function LoginForm({ next }: { next: string }) {
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
       <div>
-        <label htmlFor="email" className="mb-1 block text-sm font-medium">{t("login.email")}</label>
+        <label htmlFor="email" className="mb-1 block text-sm font-medium text-neutral-700">{t("login.email")}</label>
         <input id="email" name="email" type="email" autoComplete="username" inputMode="email" required className={inputClass} />
       </div>
       <div>
-        <label htmlFor="password" className="mb-1 block text-sm font-medium">{t("login.password")}</label>
+        <label htmlFor="password" className="mb-1 block text-sm font-medium text-neutral-700">{t("login.password")}</label>
         <input id="password" name="password" type="password" autoComplete="current-password" required className={inputClass} />
       </div>
       {error && <Notice tone="error" role="alert">{error}</Notice>}
       <button type="submit" disabled={pending} className={`${buttonPrimary} w-full`}>
+        {pending && <IconSpinner />}
         {pending ? t("login.submitting") : t("login.submit")}
       </button>
     </form>

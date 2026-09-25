@@ -33,8 +33,8 @@ export function uuid(): string {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
-export function newLine(): DraftLine {
-  return { key: uuid(), productId: "", quantity: "1", discount: "" };
+export function newLine(productId = ""): DraftLine {
+  return { key: uuid(), productId, quantity: "1", discount: "" };
 }
 
 export function newDraft(defaultRate: number): OrderDraft {
@@ -43,7 +43,7 @@ export function newDraft(defaultRate: number): OrderDraft {
     clientRequestId: uuid(),
     customerId: "",
     rate: String(defaultRate),
-    lines: [newLine()],
+    lines: [],
     updatedAt: new Date().toISOString(),
   };
 }

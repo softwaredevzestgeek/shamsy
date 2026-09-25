@@ -306,3 +306,13 @@ export function centsToInputString(cents: number): string {
   const { whole, frac } = splitHundredths(BigInt(cents));
   return frac === 0n ? whole.toString() : `${whole}.${frac.toString().padStart(2, "0")}`;
 }
+
+/** Sum of integer cents, done in bigint so it can never lose precision. */
+export function sumCents(values: Iterable<number>): bigint {
+  let total = 0n;
+  for (const v of values) {
+    assertCents(v, "cents");
+    total += BigInt(v);
+  }
+  return total;
+}

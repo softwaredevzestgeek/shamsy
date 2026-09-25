@@ -7,24 +7,74 @@
   --color-sand-500: #c4a064;
   --color-sand-800: #6b5424;
   --color-sand-900: #4a3a19;
+
+  --color-brand-50: #eef7f4;
+  --color-brand-100: #d5ebe4;
+  --color-brand-500: #1f7a64;
+  --color-brand-600: #145f4e;
   --color-brand-700: #0b3d33;
   --color-brand-800: #083028;
+  --color-brand-900: #051f1a;
+
+  --color-sun-300: #ffd27a;
+  --color-sun-400: #fbbf3c;
+  --color-sun-500: #f5a524;
+  --color-sun-600: #d98a0b;
+
+  --animate-rise: rise 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pop: pop 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-spin-slow: spin 12s linear infinite;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pop {
+    0% { transform: scale(0.92); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
 }
 
 html {
   -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 7.5rem; /* sticky header */
 }
 
 body {
-  background: #f7f7f5;
-  color: #1c1c1c;
+  background:
+    radial-gradient(1200px 400px at 50% -200px, rgb(11 61 51 / 0.07), transparent 70%),
+    #f6f6f2;
+  color: #17201d;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Arabic", sans-serif;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Numbers line up in totals and tables */
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* Skeleton placeholder */
+.skeleton {
+  border-radius: 0.5rem;
+  background: linear-gradient(90deg, #e9ebe7 0%, #f5f6f3 50%, #e9ebe7 100%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Staggered entrance for lists */
+.stagger > * {
+  animation: var(--animate-rise);
+}
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(4) { animation-delay: 120ms; }
+.stagger > *:nth-child(5) { animation-delay: 160ms; }
+.stagger > *:nth-child(n + 6) { animation-delay: 200ms; }
 
 /* The blocked band must not rely on colour alone: stripe + icon + text label. */
 .band-blocked {
@@ -35,4 +85,31 @@ body {
     rgb(254 242 242) 8px,
     rgb(254 242 242) 16px
   );
+}
+
+/* Route change: a quick crossfade + lift (React <ViewTransition>) */
+::view-transition-old(.page-fade) {
+  animation: 120ms ease-out both vt-fade-out;
+}
+::view-transition-new(.page-fade) {
+  animation: 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both vt-fade-in;
+}
+@keyframes vt-fade-out {
+  to { opacity: 0; }
+}
+@keyframes vt-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after,
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
 }

@@ -2,7 +2,7 @@ import { t } from "@/i18n";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Customer, Product, Settings } from "@/lib/types";
-import { Notice, PageTitle } from "@/components/ui";
+import { Notice, PageHeader } from "@/components/ui";
 import { OrderFormLoader } from "@/components/order/OrderFormLoader";
 
 export default async function NewOrderPage() {
@@ -28,8 +28,8 @@ export default async function NewOrderPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <PageTitle>{t("order.newTitle")}</PageTitle>
+    <div className="space-y-5">
+      <PageHeader title={t("order.newTitle")} subtitle={t("order.newSubtitle")} />
       <OrderFormLoader
         userId={profile.id}
         role={profile.role}

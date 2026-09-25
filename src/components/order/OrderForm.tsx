@@ -7,10 +7,11 @@ import { locale, t } from "@/i18n";
 import { clearDraft, isDraftEmpty, loadDraft, newDraft, newLine, saveDraft, type DraftLine, type OrderDraft } from "@/lib/draft";
 import { describeServerError, isNetworkError } from "@/lib/errors";
 import { checkRate, formatBasisPointsAsPercent, formatInteger, formatSdg, formatUsd } from "@/lib/money";
-import { evaluateDraft, toSavePayload } from "@/lib/order-form";
+import { evaluateDraft, toSavePayload, type EvaluatedDraft } from "@/lib/order-form";
 import { createClient } from "@/lib/supabase/client";
 import type { Customer, Product, Role, Settings } from "@/lib/types";
-import { Card, Notice, Row, buttonPrimary, buttonSecondary, buttonWarning, inputClass } from "@/components/ui";
+import { Avatar, Card, Notice, SectionTitle, buttonPrimary, buttonWarning, cx, inputClass } from "@/components/ui";
+import { IconCheck, IconExchange, IconPlus, IconSpinner, IconWifiOff } from "@/components/icons";
 import { LineEditor } from "./LineEditor";
 
 const SAVE_TIMEOUT_MS = 30_000;
@@ -49,8 +50,8 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
   );
   const productMap = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
 
-  // This component renders only in the browser (see OrderFormLoader), so the
-  // saved draft can be read synchronously on first render.
+  // Rendered only in the browser (see OrderFormLoader), so the saved draft can
+  // be read synchronously on the first render.
   const [initial] = useState(() => {
     const stored = loadDraft(userId);
     return stored && !isDraftEmpty(stored)
@@ -63,10 +64,11 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
   const [attempted, setAttempted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<SubmitError | null>(null);
+  const [dealerQuery, setDealerQuery] = useState("");
   const inFlight = useRef(false);
   const finished = useRef(false);
 
-  // Every keystroke is kept on the device.
+  // Every change is kept on the device.
   useEffect(() => {
     if (finished.current) return;
     saveDraft(userId, { ...draft, updatedAt: new Date().toISOString() });
@@ -76,8 +78,7 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
     () => evaluateDraft(draft, productMap, thresholds, minRate),
     [draft, productMap, thresholds, minRate],
   );
-  const { totals } = evaluated;
-  const blockedCount = totals.blockedCount;
+  const blockedCount = evaluated.totals.blockedCount;
   const adviserBlocked = !isOwner && blockedCount > 0;
   const minRateText = formatInteger(minRate, locale.intl);
   const redMaxText = formatBasisPointsAsPercent(thresholds.redMaxBp, locale.intl);
@@ -121,7 +122,13 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
     if (inFlight.current) return; // no double submission
     setAttempted(true);
     if (!evaluated.valid) {
-      setSubmitError({ message: t("order.fixErrors") });
+      setSubmitError({
+        message: evaluated.missingCustomer
+          ? t("order.needCustomer")
+          : evaluated.missingLines
+            ? t("order.needLine")
+            : t("order.fixErrors"),
+      });
       return;
     }
     const rate = checkRate(draft.rate, minRate);
@@ -164,178 +171,329 @@ export function OrderForm({ userId, role, products, customers, settings }: Order
     }
   }
 
-  const primaryLabel = saving
-    ? t("order.saving")
-    : isOwner && blockedCount > 0
-      ? t("order.saveAndApprove", { count: blockedCount })
-      : t("order.save");
+  const q = dealerQuery.trim().toLowerCase();
+  const visibleCustomers = q
+    ? customers.filter((c) => `${c.name} ${c.city}`.toLowerCase().includes(q))
+    : customers;
+
+  const actions = (
+    <SaveActions
+      saving={saving}
+      isOwner={isOwner}
+      blockedCount={blockedCount}
+      adviserBlocked={adviserBlocked}
+      redMaxText={redMaxText}
+      onSendForApproval={() => void submit()}
+    />
+  );
 
   return (
     <form
-      className="space-y-4"
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
         if (!adviserBlocked) void submit();
       }}
+      className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-6"
     >
-      {!online && <Notice tone="warning" role="status">{t("order.offline")}</Notice>}
-      {restored && (
-        <Notice tone="info" role="status">
-          {t("order.draftRestored")}
-        </Notice>
-      )}
+      <div className="space-y-5">
+        {!online && (
+          <Notice tone="warning" role="status" icon={<IconWifiOff size={18} />}>
+            {t("order.offline")}
+          </Notice>
+        )}
+        {restored && (
+          <Notice tone="info" role="status">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span>{t("order.draftRestored")}</span>
+              <button type="button" onClick={discard} className="font-semibold underline underline-offset-2">
+                {t("order.discardDraft")}
+              </button>
+            </div>
+          </Notice>
+        )}
 
-      {/* Dealer */}
-      <Card>
-        <label htmlFor="customer" className="mb-1 block text-sm font-semibold">{t("order.customer")}</label>
-        <select
-          id="customer"
-          className={inputClass}
-          value={draft.customerId}
-          aria-invalid={attempted && evaluated.missingCustomer}
-          onChange={(e) => update((d) => ({ ...d, customerId: e.target.value }))}
-        >
-          <option value="">{t("order.chooseCustomer")}</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.city ? `${c.name} — ${c.city}` : c.name}
-            </option>
-          ))}
-        </select>
-        {attempted && evaluated.missingCustomer && <p className="mt-1 text-sm text-red-700">{t("order.needCustomer")}</p>}
-        {customers.length === 0 && <p className="mt-1 text-sm text-red-700">{t("order.noCustomers")}</p>}
-      </Card>
-
-      {/* Lines */}
-      <section aria-labelledby="lines-heading" className="space-y-3">
-        <h2 id="lines-heading" className="text-base font-semibold">{t("order.lines")}</h2>
-        {products.length === 0 && <Notice tone="error">{t("order.noProducts")}</Notice>}
-        {draft.lines.map((line, i) => (
-          <LineEditor
-            key={line.key}
-            index={i}
-            line={line}
-            evaluated={evaluated.lines[i]}
-            products={products}
-            thresholds={thresholds}
-            isOwner={isOwner}
-            showRequired={attempted}
-            canRemove={draft.lines.length > 1}
-            onChange={(patch) => updateLine(line.key, patch)}
-            onRemove={() => update((d) => ({ ...d, lines: d.lines.filter((l) => l.key !== line.key) }))}
-          />
-        ))}
-        <button type="button" className={`${buttonSecondary} w-full`} onClick={() => update((d) => ({ ...d, lines: [...d.lines, newLine()] }))}>
-          + {t("order.addLine")}
-        </button>
-      </section>
-
-      {/* Rate */}
-      <Card>
-        <label htmlFor="rate" className="mb-1 block text-sm font-semibold">{t("order.rate")}</label>
-        <input
-          id="rate"
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          autoComplete="off"
-          className={`${inputClass} tabular`}
-          value={draft.rate}
-          aria-invalid={!evaluated.rate.ok}
-          aria-describedby="rate-hint rate-notice"
-          onChange={(e) => update((d) => ({ ...d, rate: e.target.value }))}
-          onBlur={onRateBlur}
-        />
-        <p id="rate-hint" className="mt-1 text-xs text-neutral-600">{t("order.rateHint", { min: minRateText })}</p>
-        <div id="rate-notice" aria-live="polite">
-          {rateNotice && (
-            <p className="mt-2 rounded-md bg-amber-100 px-2 py-1 text-sm font-medium text-amber-900">{rateNotice}</p>
+        {/* 1. Dealer */}
+        <Card>
+          <SectionTitle step={1}>{t("order.stepDealer")}</SectionTitle>
+          {customers.length > 6 && (
+            <input
+              type="search"
+              className={cx(inputClass, "mb-3")}
+              placeholder={t("order.searchDealer")}
+              aria-label={t("order.searchDealer")}
+              value={dealerQuery}
+              onChange={(e) => setDealerQuery(e.target.value)}
+            />
           )}
-        </div>
-      </Card>
-
-      {/* Totals */}
-      <Card>
-        <h2 className="mb-2 text-base font-semibold">{t("order.totals")}</h2>
-        <dl className="space-y-1">
-          <Row label={t("order.subtotal")} value={formatUsd(totals.subtotalCents, locale.intl)} />
-          <Row label={t("order.totalDiscount")} value={`− ${formatUsd(totals.discountCents, locale.intl)}`} />
-          <Row label={t("order.totalUsd")} value={formatUsd(totals.totalCents, locale.intl)} strong />
-          <Row
-            label={t("order.totalSdg")}
-            value={totals.totalSdgPiastres === null ? "—" : formatSdg(totals.totalSdgPiastres, locale.intl)}
-            strong
-          />
-          {evaluated.rate.ok && (
-            <p className="text-end text-xs text-neutral-600">
-              {t("order.atRate", { rate: formatInteger(evaluated.rate.rate, locale.intl) })}
-            </p>
-          )}
-        </dl>
-      </Card>
-
-      {blockedCount > 0 && (
-        <Notice tone={isOwner ? "warning" : "error"} role="status">
-          {isOwner
-            ? t("order.ownerBlockedExplanation", { count: blockedCount, max: redMaxText })
-            : t("order.blockedExplanation", { count: blockedCount, max: redMaxText })}
-        </Notice>
-      )}
-
-      <div className="flex justify-end">
-        <button type="button" className="min-h-11 px-2 text-sm text-neutral-600 underline" onClick={discard}>
-          {t("order.discardDraft")}
-        </button>
-      </div>
-
-      {/* Sticky action bar: totals and save always in reach of the thumb */}
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-neutral-200 bg-white/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-2px_8px_rgba(0,0,0,0.06)] backdrop-blur">
-        <div className="mx-auto max-w-2xl space-y-2">
-          <div aria-live="polite">
-            {submitError && (
-              <Notice tone="error" role="alert">
-                {submitError.message}
-                {submitError.savedOrderId && (
-                  <>
-                    {" "}
-                    <Link className="font-semibold underline" href={`/orders/${submitError.savedOrderId}`}>
-                      {t("order.openSavedOrder")}
-                    </Link>
-                  </>
-                )}
-              </Notice>
-            )}
+          <div role="radiogroup" aria-label={t("order.customer")} className="grid gap-2 sm:grid-cols-3">
+            {visibleCustomers.map((c) => {
+              const selected = draft.customerId === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => update((d) => ({ ...d, customerId: c.id }))}
+                  className={cx(
+                    "relative flex min-h-14 items-center gap-3 rounded-xl border p-2.5 text-start transition active:scale-[0.98]",
+                    selected
+                      ? "border-brand-500 bg-brand-50 ring-2 ring-brand-500/30"
+                      : "border-neutral-200 bg-white hover:border-neutral-300",
+                    attempted && evaluated.missingCustomer && "border-red-300",
+                  )}
+                >
+                  <Avatar name={c.name} />
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold text-neutral-900">{c.name}</span>
+                    <span className="block truncate text-xs text-neutral-500">{c.city}</span>
+                  </span>
+                  {selected && (
+                    <span className="absolute end-2 top-2 grid size-5 animate-pop place-items-center rounded-full bg-brand-600 text-white">
+                      <IconCheck size={12} strokeWidth={3} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <div className="tabular flex items-baseline justify-between gap-2">
-            <span className="text-lg font-bold">{formatUsd(totals.totalCents, locale.intl)}</span>
-            <span className="text-sm font-semibold text-neutral-800">
-              {totals.totalSdgPiastres === null ? "—" : formatSdg(totals.totalSdgPiastres, locale.intl)}
+          {visibleCustomers.length === 0 && <p className="text-sm text-neutral-600">{customers.length ? t("order.noDealerMatch") : t("order.noCustomers")}</p>}
+          {attempted && evaluated.missingCustomer && <p className="mt-2 text-sm font-medium text-red-700">{t("order.needCustomer")}</p>}
+        </Card>
+
+        {/* 2. Products */}
+        <Card>
+          <SectionTitle step={2}>{t("order.stepProducts")}</SectionTitle>
+          {draft.lines.length === 0 ? (
+            <p className={cx("mb-3 rounded-xl border border-dashed px-3 py-4 text-center text-sm", attempted ? "border-red-300 text-red-800" : "border-neutral-300 text-neutral-600")}>
+              {t("order.emptyLines")}
+            </p>
+          ) : (
+            <ul className="mb-4 space-y-3">
+              {draft.lines.map((line, i) => (
+                <LineEditor
+                  key={line.key}
+                  index={i}
+                  line={line}
+                  evaluated={evaluated.lines[i]}
+                  thresholds={thresholds}
+                  isOwner={isOwner}
+                  onChange={(patch) => updateLine(line.key, patch)}
+                  onRemove={() => update((d) => ({ ...d, lines: d.lines.filter((l) => l.key !== line.key) }))}
+                />
+              ))}
+            </ul>
+          )}
+
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">{t("order.addProductTitle")}</p>
+          <div className="grid grid-cols-2 gap-2">
+            {products.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => update((d) => ({ ...d, lines: [...d.lines, newLine(p.id)] }))}
+                className="group flex min-h-16 flex-col justify-between gap-1 rounded-xl border border-neutral-200 bg-neutral-50/60 p-2.5 text-start transition hover:border-brand-500 hover:bg-brand-50 active:scale-[0.97]"
+              >
+                <span className="line-clamp-2 text-sm font-semibold leading-snug text-neutral-900">{p.name}</span>
+                <span className="flex items-center justify-between gap-1">
+                  <span className="tabular text-sm font-bold text-brand-700">{formatUsd(p.price_cents, locale.intl)}</span>
+                  <span className="grid size-6 place-items-center rounded-full bg-brand-700 text-white transition group-hover:scale-110">
+                    <IconPlus size={14} strokeWidth={3} />
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-neutral-500">{t("order.addProductHint")}</p>
+          {products.length === 0 && <Notice tone="error">{t("order.noProducts")}</Notice>}
+        </Card>
+
+        {/* 3. Rate */}
+        <Card>
+          <SectionTitle step={3}>{t("order.stepRate")}</SectionTitle>
+          <label htmlFor="rate" className="sr-only">{t("order.rate")}</label>
+          <div className="relative">
+            <span aria-hidden className="pointer-events-none absolute inset-y-0 start-3.5 grid place-items-center text-neutral-400">
+              <IconExchange size={18} />
+            </span>
+            <input
+              id="rate"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              enterKeyHint="done"
+              className={cx(inputClass, "tabular h-14 ps-11 pe-28 text-xl font-bold")}
+              value={draft.rate}
+              aria-invalid={!evaluated.rate.ok}
+              aria-describedby="rate-hint rate-notice"
+              onChange={(e) => update((d) => ({ ...d, rate: e.target.value }))}
+              onBlur={onRateBlur}
+            />
+            <span aria-hidden className="pointer-events-none absolute inset-y-0 end-3.5 grid place-items-center text-sm font-medium text-neutral-500">
+              {t("order.sdgPerUsd")}
             </span>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row-reverse">
-            <button
-              type="submit"
-              className={`${buttonPrimary} w-full sm:flex-1`}
-              disabled={saving || adviserBlocked}
-              aria-describedby={adviserBlocked ? "blocked-reason" : undefined}
-            >
-              {primaryLabel}
-            </button>
-            {adviserBlocked && (
-              <button type="button" className={`${buttonWarning} w-full sm:flex-1`} disabled={saving} onClick={() => void submit()}>
-                {saving ? t("order.saving") : t("order.sendForApproval")}
-              </button>
+          <p id="rate-hint" className="mt-2 flex items-center gap-2 text-xs text-neutral-600">
+            <span className="rounded-full bg-neutral-100 px-2 py-0.5 font-semibold">{t("order.minChip", { min: minRateText })}</span>
+            {t("order.rateHint", { min: minRateText })}
+          </p>
+          <div id="rate-notice" aria-live="polite">
+            {rateNotice && (
+              <div className="mt-2">
+                <Notice tone="warning">{rateNotice}</Notice>
+              </div>
             )}
           </div>
-          {adviserBlocked && (
-            <p id="blocked-reason" className="sr-only">
-              {t("order.blockedExplanation", { count: blockedCount, max: redMaxText })}
-            </p>
-          )}
-          <p className="text-center text-[11px] text-neutral-500">{t("order.draftSavedLocally")}</p>
+        </Card>
+
+        <div className="flex justify-center lg:justify-start">
+          <button type="button" className="min-h-11 px-2 text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-800" onClick={discard}>
+            {t("order.discardDraft")}
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop: sticky summary panel */}
+      <aside className="hidden lg:sticky lg:top-32 lg:block">
+        <SummaryPanel evaluated={evaluated} lineCount={draft.lines.length}>
+          <SubmitFeedback error={submitError} />
+          {actions}
+        </SummaryPanel>
+      </aside>
+
+      {/* Phone: compact bar, always within thumb reach */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-black/10 bg-white/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-md lg:hidden">
+        <div className="mx-auto max-w-2xl space-y-2.5">
+          <SubmitFeedback error={submitError} />
+          <div className="tabular flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">{t("order.dealerPays")}</p>
+              <p key={String(evaluated.totals.totalSdgPiastres)} className="animate-pop truncate text-xl font-extrabold text-brand-800">
+                {evaluated.totals.totalSdgPiastres === null ? "—" : formatSdg(evaluated.totals.totalSdgPiastres, locale.intl)}
+              </p>
+            </div>
+            <div className="text-end">
+              <p className="text-lg font-bold text-neutral-900">{formatUsd(evaluated.totals.totalCents, locale.intl)}</p>
+              {evaluated.rate.ok && (
+                <p className="text-[11px] text-neutral-500">{t("order.atRate", { rate: formatInteger(evaluated.rate.rate, locale.intl) })}</p>
+              )}
+            </div>
+          </div>
+          {actions}
         </div>
       </div>
     </form>
+  );
+}
+
+function SubmitFeedback({ error }: { error: SubmitError | null }) {
+  return (
+    <div aria-live="polite">
+      {error && (
+        <Notice tone="error" role="alert">
+          {error.message}
+          {error.savedOrderId && (
+            <>
+              {" "}
+              <Link className="font-semibold underline" href={`/orders/${error.savedOrderId}`}>
+                {t("order.openSavedOrder")}
+              </Link>
+            </>
+          )}
+        </Notice>
+      )}
+    </div>
+  );
+}
+
+function SaveActions({
+  saving,
+  isOwner,
+  blockedCount,
+  adviserBlocked,
+  redMaxText,
+  onSendForApproval,
+}: {
+  saving: boolean;
+  isOwner: boolean;
+  blockedCount: number;
+  adviserBlocked: boolean;
+  redMaxText: string;
+  onSendForApproval: () => void;
+}) {
+  const label = isOwner && blockedCount > 0 ? t("order.saveAndApprove", { count: blockedCount }) : t("order.save");
+  return (
+    <div className="space-y-2">
+      {blockedCount > 0 && (
+        <p className={cx("rounded-xl px-3 py-2 text-xs font-medium", isOwner ? "bg-amber-50 text-amber-950" : "bg-red-50 text-red-900")}>
+          {isOwner
+            ? t("order.ownerBlockedExplanation", { count: blockedCount, max: redMaxText })
+            : t("order.blockedExplanation", { count: blockedCount, max: redMaxText })}
+        </p>
+      )}
+      <div className="flex flex-col gap-2">
+        {adviserBlocked && (
+          <button type="button" className={cx(buttonWarning, "w-full")} disabled={saving} onClick={onSendForApproval}>
+            {saving ? <IconSpinner /> : null}
+            {saving ? t("order.saving") : t("order.sendForApproval")}
+          </button>
+        )}
+        <button type="submit" className={cx(buttonPrimary, "w-full")} disabled={saving || adviserBlocked}>
+          {saving && !adviserBlocked ? <IconSpinner /> : null}
+          {saving && !adviserBlocked ? t("order.saving") : label}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SummaryPanel({
+  evaluated,
+  lineCount,
+  children,
+}: {
+  evaluated: EvaluatedDraft;
+  lineCount: number;
+  children: React.ReactNode;
+}) {
+  const { totals, rate } = evaluated;
+  return (
+    <div className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-lg shadow-black/5">
+      <div className="bg-gradient-to-br from-brand-800 to-brand-600 p-5 text-white">
+        <p className="text-xs font-medium uppercase tracking-wide text-white/70">{t("order.dealerPays")}</p>
+        <p key={String(totals.totalSdgPiastres)} className="tabular mt-1 animate-pop text-3xl font-extrabold tracking-tight">
+          {totals.totalSdgPiastres === null ? "—" : formatSdg(totals.totalSdgPiastres, locale.intl)}
+        </p>
+        <p className="tabular mt-1 text-lg font-semibold text-sun-300">{formatUsd(totals.totalCents, locale.intl)}</p>
+        {rate.ok && (
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-xs">
+            <IconExchange size={14} />
+            {t("order.atRate", { rate: formatInteger(rate.rate, locale.intl) })}
+          </p>
+        )}
+      </div>
+      <dl className="tabular space-y-1.5 p-5 pb-3 text-sm">
+        <div className="flex justify-between text-neutral-500">
+          <dt>{t("order.summary")}</dt>
+          <dd>{t("order.lineCount", { count: lineCount })}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt className="text-neutral-600">{t("order.subtotal")}</dt>
+          <dd>{formatUsd(totals.subtotalCents, locale.intl)}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt className="text-neutral-600">{t("order.totalDiscount")}</dt>
+          <dd className="text-red-700">− {formatUsd(totals.discountCents, locale.intl)}</dd>
+        </div>
+        <div className="flex justify-between border-t border-black/5 pt-1.5 font-bold">
+          <dt>{t("order.totalUsd")}</dt>
+          <dd>{formatUsd(totals.totalCents, locale.intl)}</dd>
+        </div>
+      </dl>
+      <div className="space-y-3 p-5 pt-2">{children}</div>
+      <p className="border-t border-black/5 px-5 py-2.5 text-center text-[11px] text-neutral-500">{t("order.draftSavedLocally")}</p>
+    </div>
   );
 }
