@@ -15,6 +15,18 @@ const admin = createClient(SUPABASE_URL(), SERVICE_KEY(), {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+/**
+ * Same rule as supabase/config.toml and the hosted Auth settings:
+ * at least 12 characters with lower case, upper case and a digit.
+ */
+function passwordProblem(password: string): string | null {
+  if (password.length < 12) return "use at least 12 characters";
+  if (!/[a-z]/.test(password)) return "add a lower-case letter";
+  if (!/[A-Z]/.test(password)) return "add an upper-case letter";
+  if (!/[0-9]/.test(password)) return "add a digit";
+  return null;
+}
+
 async function findUserByEmail(email: string): Promise<User | null> {
   for (let page = 1; page < 100; page++) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
@@ -28,8 +40,9 @@ async function findUserByEmail(email: string): Promise<User | null> {
 
 async function upsertUser(spec: (typeof USERS)[keyof typeof USERS]) {
   const password = need(spec.passwordVar);
-  if (password.length < 8) {
-    console.error(`${spec.passwordVar} must be at least 8 characters.`);
+  const problem = passwordProblem(password);
+  if (problem) {
+    console.error(`${spec.passwordVar} is too weak: ${problem}.`);
     process.exit(2);
   }
 

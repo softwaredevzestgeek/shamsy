@@ -5,13 +5,20 @@ on:
     branches: [main]
   pull_request:
 
+# Least privilege for the workflow token.
+permissions:
+  contents: read
+
 jobs:
   app:
     name: Lint, typecheck, unit tests, build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Actions are pinned to full commit SHAs (tag in the comment), never to moving tags.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -22,29 +29,31 @@ jobs:
       - run: npm run build
 
   database:
-    name: Migrations, pgTAP and end-to-end verify on a local Supabase
-    runs-on: ubuntu-latest
+    name: Migrations, pgTAP security tests and end-to-end verify on a local Supabase
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
+      # The Supabase CLI comes from package-lock.json (exact version, integrity-checked),
+      # not from a third-party action pulling "latest".
       - run: npm ci
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
       - name: Start Supabase (applies migrations and seed.sql)
-        run: supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor
-      - name: pgTAP
-        run: supabase test db
+        run: npx supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor
+      - name: pgTAP (rules, RLS, multi-user, RPC surface, storage)
+        run: npx supabase test db
       - name: Seed users and verify
         run: |
-          eval "$(supabase status -o env | sed 's/^/export /')"
+          eval "$(npx supabase status -o env | sed 's/^/export /')"
           export NEXT_PUBLIC_SUPABASE_URL="$API_URL"
           export NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY"
           export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
-          export SEED_ADVISER_PASSWORD="ci-adviser-password"
-          export SEED_OWNER_PASSWORD="ci-owner-password"
+          # Throwaway CI-only passwords, random per run.
+          export SEED_ADVISER_PASSWORD="Ci$(openssl rand -hex 12)A1"
+          export SEED_OWNER_PASSWORD="Ci$(openssl rand -hex 12)B2"
           npm run seed:users
           npm run verify

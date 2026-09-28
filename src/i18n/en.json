@@ -14,7 +14,8 @@
   },
   "roles": {
     "owner": "Owner",
-    "adviser": "Sales adviser"
+    "adviser": "Sales adviser",
+    "pending": "No access yet"
   },
   "login": {
     "title": "Sign in",
@@ -236,6 +237,11 @@
     "default_below_minimum": "The default rate cannot be below the minimum rate.",
     "invalid_thresholds": "The discount limits are not valid.",
     "order_is_immutable": "A saved order cannot be changed.",
-    "permission_denied": "You do not have permission to do this."
+    "permission_denied": "You do not have permission to do this.",
+    "no_access": "Your account has no access yet. Ask the owner to assign a role."
+  },
+  "access": {
+    "pendingTitle": "Your account is waiting for access",
+    "pendingBody": "The owner has to assign you a role before you can see dealers, prices or orders."
   }
 }

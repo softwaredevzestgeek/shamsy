@@ -13,8 +13,9 @@ values
    'pgtap-owner@shamsy.test', '{"full_name":"Test Owner"}', now(), now());
 
 select is((select role from public.profiles where id = 'a0000000-0000-4000-8000-00000000000a'),
-          'adviser', 'new auth user gets an adviser profile');
+          'pending', 'a new sign-up gets a pending profile with no access');
 
+update public.profiles set role = 'adviser' where id = 'a0000000-0000-4000-8000-00000000000a';
 update public.profiles set role = 'owner' where id = 'b0000000-0000-4000-8000-00000000000b';
 
 insert into public.settings (id, min_rate, default_rate, discount_sand_max_bp, discount_red_max_bp)
@@ -164,6 +165,80 @@ select is((select approved_by from public.order_lines where order_id = current_s
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
 select is((select count(*) from public.orders where id = current_setting('t.o3')::uuid), 0::bigint, 'adviser cannot read other users orders');
 select is((select count(*) from public.order_lines where order_id = current_setting('t.o3')::uuid), 0::bigint, 'nor their lines');
+
+-- ---------------------------------------------------------------- multi-user and future-role authorization
+reset role;
+insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at)
+values
+  ('00000000-0000-0000-0000-000000000000', 'c0000000-0000-4000-8000-00000000000c', 'authenticated', 'authenticated',
+   'pgtap-adviser2@shamsy.test', '{"full_name":"Second Adviser"}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'e0000000-0000-4000-8000-00000000000e', 'authenticated', 'authenticated',
+   'pgtap-stranger@shamsy.test', '{"full_name":"Stranger"}', now(), now());
+update public.profiles set role = 'adviser' where id = 'c0000000-0000-4000-8000-00000000000c';
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"c0000000-0000-4000-8000-00000000000c","role":"authenticated"}', true);
+select set_config('t.o_c', public.save_order('d0000000-0000-4000-8000-00000000000d', 8200,
+  current_setting('t.lines12')::jsonb, gen_random_uuid())::text, true);
+select is((select count(*) from public.orders where id = current_setting('t.o1')::uuid), 0::bigint,
+  'a second adviser cannot read the first adviser''s orders');
+
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-00000000000a","role":"authenticated"}', true);
+select is((select count(*) from public.orders where id = current_setting('t.o_c')::uuid), 0::bigint,
+  'the first adviser cannot read the second adviser''s orders');
+select is((select count(*) from public.order_lines where order_id = current_setting('t.o_c')::uuid), 0::bigint,
+  'nor their lines');
+select is((select count(*) from public.profiles where id = 'c0000000-0000-4000-8000-00000000000c'), 0::bigint,
+  'an adviser cannot read another adviser''s profile');
+
+-- a signed-up stranger (pending role) sees and does nothing
+select set_config('request.jwt.claims', '{"sub":"e0000000-0000-4000-8000-00000000000e","role":"authenticated"}', true);
+select is((select count(*) from public.products), 0::bigint, 'pending user cannot read products (prices)');
+select is((select count(*) from public.customers), 0::bigint, 'pending user cannot read dealers');
+select is((select count(*) from public.settings), 0::bigint, 'pending user cannot read settings');
+select is((select count(*) from public.orders), 0::bigint, 'pending user cannot read orders');
+select throws_ok($$select public.save_order('d0000000-0000-4000-8000-00000000000d', 8200,
+  current_setting('t.lines12')::jsonb, gen_random_uuid())$$, '42501', 'no_access', 'pending user cannot save an order');
+select throws_ok($$select public.approve_order_line(current_setting('t.l3')::uuid)$$, '42501', 'owner_only', 'pending user cannot approve');
+select throws_ok($$select public.update_settings(8000, 8000)$$, '42501', 'owner_only', 'pending user cannot change settings');
+select throws_ok($$update public.profiles set role = 'owner' where id = auth.uid()$$, '42501', null, 'pending user cannot give herself a role');
+
+-- ---------------------------------------------------------------- RPC attack surface
+reset role;
+select is(
+  (select array_agg(p.proname::text order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'EXECUTE')),
+  null::text[],
+  'anon can execute no function in public');
+select is(
+  (select array_agg(p.proname::text order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'EXECUTE')),
+  array['approve_order_line', 'is_member', 'is_owner', 'save_order', 'update_settings'],
+  'authenticated can execute exactly the allowlisted functions');
+select is(
+  (select array_agg(p.proname::text order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prosecdef
+     and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c = 'search_path=""')),
+  null::text[],
+  'every security definer function pins an empty search_path');
+select is(
+  (select array_agg(c.relname::text) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity),
+  null::text[],
+  'row level security is enabled on every public table');
+select is(
+  (select array_agg(tablename || ':' || cmd) from pg_policies
+   where schemaname = 'public' and cmd <> 'SELECT'),
+  null::text[],
+  'no insert/update/delete policy exists on any public table');
+
+-- ---------------------------------------------------------------- Storage (not used by this app)
+select is((select count(*) from storage.buckets), 0::bigint, 'no storage buckets exist');
+select is(
+  (select count(*) from pg_policies where schemaname = 'storage'
+     and (roles && array['anon', 'authenticated', 'public']::name[])),
+  0::bigint,
+  'no storage policy grants anon or authenticated users anything');
 
 -- ---------------------------------------------------------------- immutability, even as postgres
 reset role;

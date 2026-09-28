@@ -348,6 +348,51 @@ async function main() {
     );
   });
 
+  await check("15. RPC surface: internal functions cannot be called through the API", async () => {
+    const internal = [
+      ["handle_new_user", {}],
+      ["guard_orders_immutable", {}],
+      ["guard_order_lines_immutable", {}],
+      ["guard_no_truncate", {}],
+      ["check_order_totals", {}],
+      ["discount_band", { p_discount_cents: 1, p_line_value_cents: 1, p_sand_max_bp: 300, p_red_max_bp: 500 }],
+      ["discount_bp_display", { p_discount_cents: 1, p_line_value_cents: 1 }],
+    ] as const;
+    const failures: string[] = [];
+    for (const [fn, args] of internal) {
+      for (const [who, client] of [["anon", anon], ["adviser", adviser]] as const) {
+        const { error } = await client.rpc(fn, args);
+        if (!error) failures.push(`${who} could call ${fn}`);
+      }
+    }
+    for (const fn of ["save_order", "approve_order_line", "update_settings", "is_owner", "is_member"]) {
+      const { error } = await anon.rpc(fn, {});
+      if (!error) failures.push(`anon could call ${fn}`);
+    }
+    return failures.length ? failures.join("; ") : true;
+  });
+
+  await check("16. Storage: no buckets are visible and uploads are refused", async () => {
+    const failures: string[] = [];
+    for (const [who, client] of [["anon", anon], ["adviser", adviser]] as const) {
+      const { data } = await client.storage.listBuckets();
+      if ((data?.length ?? 0) > 0) failures.push(`${who} can list buckets`);
+      const upload = await client.storage.from("orders").upload(`probe-${randomUUID()}.txt`, new Blob(["x"]), { upsert: false });
+      if (!upload.error) failures.push(`${who} could upload a file`);
+    }
+    return failures.length ? failures.join("; ") : true;
+  });
+
+  await check("17. Without the app (no middleware), a direct API call still gets nothing", async () => {
+    // The proxy is only a UX redirect; this calls PostgREST directly with the public key.
+    const bare = newClient();
+    const reads = await Promise.all(
+      ["orders", "order_lines", "products", "customers", "settings", "profiles"].map((t) => bare.from(t).select("*").limit(1)),
+    );
+    const leaked = reads.flatMap((r, i) => (!r.error && (r.data?.length ?? 0) > 0 ? [i] : []));
+    return leaked.length ? `anonymous read returned rows for ${leaked.length} table(s)` : true;
+  });
+
   // Summary -------------------------------------------------------------------------
   const failed = results.filter((r) => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} checks passed.`);

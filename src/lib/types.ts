@@ -1,6 +1,6 @@
 import type { Band } from "./money";
 
-export type Role = "owner" | "adviser";
+export type Role = "owner" | "adviser" | "pending";
 export type OrderStatus = "pending_approval" | "confirmed";
 export type ApprovalStatus = "not_required" | "pending" | "approved";
 

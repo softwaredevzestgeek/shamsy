@@ -33,6 +33,7 @@ Taken from the live app (https://shamsy.vercel.app) with the client's worked exa
 - [How it works](#how-it-works)
 - [Design decisions](#design-decisions)
 - [Tests](#tests)
+- [Security](SECURITY.md)
 - [Project layout](#project-layout)
 
 ---
@@ -96,7 +97,7 @@ Requirements: Node 20.9+ (22 LTS recommended), npm, a Supabase account. The Supa
 | `npm run typecheck` | Generates route types, then runs `tsc --noEmit` |
 | `npm test` | Vitest unit tests (money maths, worked example, form evaluation) |
 | `npm run seed:users` | Creates or updates the adviser and owner users (service key) |
-| `npm run verify` | 14 end-to-end PASS/FAIL checks against Supabase, using the public key only |
+| `npm run verify` | 17 end-to-end PASS/FAIL checks against Supabase, using the public key only |
 | `npm run test:db` | pgTAP tests in `supabase/tests/` (needs `npx supabase start`, which needs Docker) |
 
 ---
@@ -224,7 +225,7 @@ A deferred constraint trigger also checks, at commit, that every new order's sub
 | Layer | Where | Runs |
 |---|---|---|
 | Unit | `src/lib/money.test.ts`, `src/lib/order-form.test.ts` | `npm test` |
-| Database | `supabase/tests/database/orders.test.sql` (pgTAP, ~50 assertions, all in a rolled-back transaction) | `npm run test:db` on a local Supabase |
+| Database | `supabase/tests/database/orders.test.sql` (pgTAP, 74 assertions, all in a rolled-back transaction) | `npm run test:db` on a local Supabase |
 | End-to-end | `scripts/verify.ts`: 14 checks, public key + user logins only | `npm run verify` against any Supabase project |
 | CI | `.github/workflows/ci.yml` runs lint, typecheck, unit tests and build, then starts Supabase in CI and runs pgTAP, `seed:users` and `verify` | on push / PR |
 
