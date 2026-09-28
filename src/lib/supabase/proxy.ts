@@ -8,8 +8,9 @@ const PUBLIC_PATHS = ["/login"];
  * Refreshes the Supabase session cookie on every request and sends signed-out
  * users to /login. This is a UX gate only: data access is enforced by RLS.
  */
-export async function updateSession(request: NextRequest): Promise<NextResponse> {
-  let response = NextResponse.next({ request });
+export async function updateSession(request: NextRequest, requestHeaders: Headers = request.headers): Promise<NextResponse> {
+  // requestHeaders carries the CSP nonce through to rendering.
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
   const env = getSupabasePublicEnv();
   if (!env) return response; // pages render a configuration message
 
@@ -20,7 +21,9 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
+        // Keep the refreshed cookies AND the nonce headers on the forwarded request.
+        requestHeaders.set("cookie", request.cookies.toString());
+        response = NextResponse.next({ request: { headers: requestHeaders } });
         cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
       },
     },
